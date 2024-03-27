@@ -1,1 +1,1 @@
-Do install arduino library ```__IRremoteESP8266__``` for IRremote receive and send to work
+Do install arduino library __```IRremoteESP8266```__ for IRremote receive and send to work
