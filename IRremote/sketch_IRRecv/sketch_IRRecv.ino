@@ -34,6 +34,7 @@
 #include "BaseOTA.h"
 
 #include <Arduino.h>
+#include <M5StickCPlus.h>
 #include <assert.h>
 #include <IRrecv.h>
 #include <IRremoteESP8266.h>
@@ -136,6 +137,12 @@ decode_results results;  // Somewhere to store the results
 // This section of code runs only once at start-up.
 void setup() {
   OTAwifi();  // start default wifi (previously saved on the ESP) for OTA
+  M5.begin();
+
+  M5.Lcd.setRotation(3);
+  M5.Lcd.fillScreen(BLACK);
+  M5.Lcd.setCursor(0, 0, 2);
+  M5.Lcd.printf("Receiving Start", 0);
 #if defined(ESP8266)
   Serial.begin(kBaudRate, SERIAL_8N1, SERIAL_TX_ONLY);
 #else  // ESP8266
