@@ -1,34 +1,3 @@
-/*
- * IRremoteESP8266: IRrecvDumpV3 - dump details of IR codes with IRrecv
- * An IR detector/demodulator must be connected to the input kRecvPin.
- *
- * Copyright 2009 Ken Shirriff, http://arcfn.com
- * Copyright 2017-2019 David Conran
- *
- * Example circuit diagram:
- *  https://github.com/crankyoldgit/IRremoteESP8266/wiki#ir-receiving
- *
- * Changes:
- *   Version 1.2 October, 2020
- *     - Enable easy setting of the decoding tolerance value.
- *   Version 1.1 May, 2020
- *     - Create DumpV3 from DumpV2
- *     - Add OTA Base
- *   Version 1.0 October, 2019
- *     - Internationalisation (i18n) support.
- *     - Stop displaying the legacy raw timing info.
- *   Version 0.5 June, 2019
- *     - Move A/C description to IRac.cpp.
- *   Version 0.4 July, 2018
- *     - Minor improvements and more A/C unit support.
- *   Version 0.3 November, 2017
- *     - Support for A/C decoding for some protocols.
- *   Version 0.2 April, 2017
- *     - Decode from a copy of the data so we can start capturing faster thus
- *       reduce the likelihood of miscaptures.
- * Based on Ken Shirriff's IrsendDemo Version 0.1 July, 2009,
- */
-
 // Allow over air update
 // #define OTA_ENABLE true
 #include "BaseOTA.h"
@@ -41,6 +10,7 @@
 #include <IRac.h>
 #include <IRtext.h>
 #include <IRutils.h>
+#include <algorithm>
 
 // ==================== start of TUNEABLE PARAMETERS ====================
 // An IR detector/demodulator is connected to GPIO pin 14
@@ -87,31 +57,7 @@ const uint8_t kTimeout = 50;
 // Suits most messages, while not swallowing many repeats.
 const uint8_t kTimeout = 15;
 #endif  // DECODE_AC
-// Alternatives:
-// const uint8_t kTimeout = 90;
-// Suits messages with big gaps like XMP-1 & some aircon units, but can
-// accidentally swallow repeated messages in the rawData[] output.
-//
-// const uint8_t kTimeout = kMaxTimeoutMs;
-// This will set it to our currently allowed maximum.
-// Values this high are problematic because it is roughly the typical boundary
-// where most messages repeat.
-// e.g. It will stop decoding a message and start sending it to serial at
-//      precisely the time when the next message is likely to be transmitted,
-//      and may miss it.
 
-// Set the smallest sized "UNKNOWN" message packets we actually care about.
-// This value helps reduce the false-positive detection rate of IR background
-// noise as real messages. The chances of background IR noise getting detected
-// as a message increases with the length of the kTimeout value. (See above)
-// The downside of setting this message too large is you can miss some valid
-// short messages for protocols that this library doesn't yet decode.
-//
-// Set higher if you get lots of random short UNKNOWN messages when nothing
-// should be sending a message.
-// Set lower if you are sure your setup is working, but it doesn't see messages
-// from your device. (e.g. Other IR remotes work.)
-// NOTE: Set this value very high to effectively turn off UNKNOWN detection.
 const uint16_t kMinUnknownSize = 12;
 
 // How much percentage lee way do we give to incoming signals in order to match
@@ -123,6 +69,77 @@ const uint16_t kMinUnknownSize = 12;
 //       need to adjust this value. Typically that's when the library detects
 //       your remote's message some of the time, but not all of the time.
 const uint8_t kTolerancePercentage = kTolerance;  // kTolerance is normally 25%
+
+uint16_t TV_rawData[67] = {4526, 4476,  576, 1660,  574, 1662,  568, 1670,  
+                        574, 544,  576, 542,  568, 548,  572, 548,  576, 
+                        542,  578, 1660,  572, 1666,  568, 1668,  574, 
+                        542,  576, 540,  570, 548,  572, 546,  574, 546,  
+                        576, 542,  570, 1666,  574, 544,  578, 540,  570, 
+                        550,  570, 546,  574, 544,  576, 542,  570, 1666,  
+                        576, 542,  568, 1670,  572, 1664,  568, 1668,  576, 1662,  
+                        568, 1668,  574, 1660,  572};  // SAMSUNG TV
+
+uint16_t AC_ON_rawData[583] = {3406, 1688,  444, 1256,  450, 1248,  450, 404,  450, 396,  448, 400,  
+                        440, 1260,  450, 400,  442, 408,  446, 1254,  442, 1254,  444, 404,  448, 
+                        1252,  446, 402,  452, 398,  446, 1256,  450, 1248,  450, 400,  444, 1254,  
+                        444, 1254,  442, 408,  446, 404,  448, 1250,  446, 402,  444, 406,  448, 
+                        1254,  450, 396,  450, 400,  440, 410,  444, 402,  442, 412,  440, 402,  
+                        450, 400,  442, 408,  446, 404,  448, 400,  444, 402,  452, 398,  444, 406,  
+                        446, 400,  442, 410,  444, 402,  440, 410,  444, 404,  448, 404,  450, 396,  
+                        446, 1256,  442, 404,  448, 400,  444, 406,  446, 402,  442, 408,  446, 1254,  
+                        444, 1254,  442, 410,  442, 406,  446, 400,  446, 1254,  442, 1256,  442, 1256,  
+                        450, 402,  440, 410,  444, 400,  442, 406,  446, 404,  450, 400,  444, 1256,  448, 
+                        1248,  448, 400,  444, 1256,  450, 1248,  450, 404,  452, 394,  448, 1254,  444, 1252,  
+                        446, 404,  448, 1250,  448, 1250,  448, 404,  448, 1252,  444, 400,  444, 406,  446, 404, 
+                        448, 400,  444, 404,  448, 400,  444, 404,  446, 404,  450, 404,  440, 406,  448, 400,  
+                        444, 404,  448, 400,  442, 412,  442, 406,  448, 400,  444, 406,  448, 400,  444, 406,  
+                        448, 400,  442, 410,  444, 406,  448, 400,  444, 406,  446, 402,  442, 410,  442, 404,  
+                        450, 400,  442, 408,  446, 400,  444, 410,  442, 404,  450, 402,  442, 406,  446, 404,  
+                        440, 406,  446, 404,  442, 406,  444, 406,  448, 404,  440, 408,  444, 402,  440, 406,  
+                        446, 402,  450, 400,  444, 408,  444, 402,  440, 410,  444, 404,  450, 398,  444, 408,  
+                        444, 402,  442, 406,  446, 404,  440, 408,  442, 406,  448, 402,  444, 1258,  448, 398,  
+                        444, 1254,  444, 408,  446, 402,  442, 1260,  446, 1252,  444, 1256,  440, 12728,  3406, 
+                        1692,  448, 1252,  446, 1252,  446, 404,  448, 402,  442, 408,  444, 1254,  444, 402,  450, 
+                        400,  442, 1256,  442, 1258,  448, 400,  444, 1256,  440, 408,  446, 404,  450, 1248,  448, 
+                        1250,  448, 404,  448, 1252,  444, 1254,  444, 404,  440, 410,  442, 1260,  450, 396,  446, 
+                        400,  442, 1258,  448, 402,  440, 406,  448, 400,  442, 406,  446, 404,  450, 402,  442, 404,  
+                        448, 404,  450, 400,  444, 408,  444, 400,  444, 408,  444, 404,  448, 398,  448, 400,  440, 408,  
+                        446, 406,  446, 402,  442, 404,  448, 402,  442, 1258,  448, 400,  442, 406,  446, 402,  444, 408,  
+                        446, 400,  450, 1250,  448, 1254,  444, 408,  446, 398,  446, 402,  452, 1246,  448, 1254,  446, 1254,  
+                        450, 398,  446, 404,  448, 400,  444, 404,  446, 402,  442, 410,  444, 1254,  444, 1252,  446, 402,  450, 
+                        1250,  446, 1254,  444, 404,  448, 402,  442, 1258,  450, 1248,  450, 400,  442, 1258,  450, 1248,  450, 400,  
+                        440, 1258,  450, 398,  446, 402,  450, 404,  438, 408,  446, 404,  452, 392,  446, 404,  450, 402,  442, 406,  
+                        448, 398,  442, 410,  444, 402,  440, 412,  442, 406,  448, 400,  442, 408,  446, 402,  440, 410,  444, 410,  
+                        444, 402,  450, 400,  444, 402,  450, 400,  444, 408,  444, 402,  442, 408,  448, 402,  450, 396,  448, 402,  
+                        450, 400,  444, 406,  446, 404,  450, 398,  446, 406,  470, 376,  476, 378,  474, 370,  474, 376,  478, 374,  
+                        478, 368,  476, 374,  470, 378,  476, 374,  478, 370,  472, 374,  478, 372,  470, 378,  476, 374,  478, 370,  
+                        474, 378,  474, 374,  478, 370,  474, 376,  468, 380,  474, 380,  472, 376,  478, 370,  474, 1224,  474, 374,  
+                        478, 1220,  478, 374,  478, 370,  472, 1224,  472, 1226,  472, 1228,  478};  // MITSUBISHI_AC_ON
+
+uint16_t AC_OFF_rawData[583] = {3402, 1688,  442, 1256,  440, 1256,  454, 396,  446, 402,  450, 400,  444, 1254,  442, 410,  444, 400,  452, 1248,  450, 
+                        1254,  442, 402,  448, 1252,  448, 400,  442, 406,  448, 1252,  446, 1252,  444, 404,  448, 1250,  446, 1252,  446, 404,  
+                        450, 404,  450, 1246,  450, 396,  446, 404,  440, 1258,  452, 398,  444, 404,  448, 402,  452, 396,  446, 404,  450, 400,  
+                        444, 406,  448, 400,  444, 406,  448, 404,  450, 396,  446, 404,  448, 398,  446, 404,  448, 404,  440, 406,  448, 400,  
+                        442, 408,  444, 404,  448, 400,  444, 404,  450, 398,  444, 410,  444, 404,  450, 400,  444, 404,  450, 1252,  448, 1252,  
+                        444, 404,  450, 402,  442, 404,  450, 1252,  444, 1256,  442, 1260,  448, 394,  448, 402,  440, 410,  444, 404,  448, 400,  
+                        444, 404,  448, 1252,  448, 1252,  442, 404,  448, 1250,  448, 1252,  446, 402,  450, 400,  442, 1258,  450, 1248,  450, 398,  
+                        444, 1256,  452, 1246,  450, 400,  442, 1254,  444, 406,  448, 400,  444, 410,  440, 406,  448, 398,  444, 404,  450, 398,  444, 
+                        412,  442, 402,  442, 408,  444, 404,  450, 398,  444, 404,  448, 400,  444, 408,  444, 406,  448, 398,  446, 404,  448, 400,  
+                        444, 410,  444, 400,  442, 406,  446, 404,  450, 400,  444, 404,  448, 400,  442, 406,  448, 404,  440, 408,  444, 404,  452, 396,  
+                        444, 404,  450, 398,  442, 408,  446, 404,  452, 396,  446, 404,  450, 398,  444, 408,  444, 404,  450, 398,  444, 402,  450, 398,  
+                        446, 404,  448, 402,  442, 408,  446, 402,  450, 398,  446, 406,  448, 398,  444, 410,  444, 400,  440, 410,  444, 404,  450, 398,  
+                        446, 410,  444, 400,  442, 1256,  440, 408,  446, 1252,  444, 406,  446, 402,  450, 400,  444, 1254,  444, 1258,  452, 12722,  3400, 
+                        1722,  418, 1280,  416, 1282,  416, 406,  446, 404,  450, 396,  446, 1256,  440, 404,  450, 400,  444, 1256,  450, 1278,  418, 400,  
+                        444, 1256,  440, 410,  444, 406,  448, 1250,  446, 1282,  416, 402,  452, 1252,  444, 1280,  418, 400,  444, 406,  448, 1252,  444, 406,  
+                        448, 400,  442, 1256,  442, 408,  442, 404,  450, 398,  444, 404,  448, 402,  442, 408,  444, 402,  450, 398,  444, 404,  448, 400,  444, 404,  
+                        446, 404,  440, 410,  444, 404,  448, 402,  442, 406,  446, 400,  442, 412,  442, 406,  446, 400,  446, 402,  450, 398,  444, 406,  448, 404,  
+                        450, 402,  442, 406,  446, 1250,  446, 1284,  414, 404,  448, 400,  446, 406,  446, 1250,  446, 1280,  418, 1282,  416, 404,  448, 400,  442, 406,  
+                        448, 404,  452, 402,  440, 404,  448, 1252,  446, 1282,  414, 404,  450, 1250,  446, 1278,  418, 404,  450, 396,  446, 1254,  444, 1286,  422, 396,  
+                        446, 1252,  444, 1286,  422, 402,  442, 1256,  440, 406,  450, 398,  444, 404,  448, 400,  444, 406,  446, 404,  448, 400,  442, 404,  450, 400,  444, 
+                        404,  448, 406,  446, 398,  446, 404,  450, 398,  442, 406,  450, 402,  450, 396,  446, 402,  440, 408,  444, 404,  450, 400,  442, 406,  448, 400,  444, 
+                        408,  444, 402,  450, 400,  444, 404,  450, 398,  444, 408,  444, 406,  448, 398,  446, 402,  452, 398,  442, 406,  450, 398,  442, 408,  446, 404,  452, 398,  
+                        444, 404,  448, 400,  442, 406,  450, 404,  450, 396,  446, 402,  452, 400,  442, 404,  448, 404,  450, 396,  448, 402,  450, 398,  446, 406,  448, 398,  444, 408,  
+                        446, 402,  440, 408,  448, 402,  450, 400,  442, 1258,  500, 346,  448, 1252,  498, 350,  452, 396,  444, 404,  448, 1252,  498, 1228,  470};  // MITSUBISHI_AC_OFF
 
 // Legacy (No longer supported!)
 //
@@ -181,6 +198,20 @@ void loop() {
       Serial.printf(D_STR_TOLERANCE " : %d%%\n", kTolerancePercentage);
     // Display the basic output of what we found.
     Serial.print(resultToHumanReadableBasic(&results));
+
+    // Compare the received raw data with each expected raw data
+    bool isTVMatch = std::equal(std::begin(results.rawData), std::end(results.rawData), std::begin(TV_rawData));
+    bool isAC_ON_Match = std::equal(std::begin(results.rawData), std::end(results.rawData), std::begin(AC_ON_rawData));
+    bool isAC_OFF_Match = std::equal(std::begin(results.rawData), std::end(results.rawData), std::begin(AC_OFF_rawData));
+    
+    if (isTVMatch) {
+        M5.Lcd.printf("Received TV signal", 0);
+    } else if (isAC_ON_Match) {
+        M5.Lcd.printf("Received AIRCON ON signal", 0);
+    } else if (isAC_OFF_Match) {
+        M5.Lcd.printf("Received AIRCON OFF signal", 0);
+    } 
+    
     // Display any extra A/C info if we have it.
     String description = IRAcUtils::resultAcToString(&results);
     if (description.length()) Serial.println(D_STR_MESGDESC ": " + description);
