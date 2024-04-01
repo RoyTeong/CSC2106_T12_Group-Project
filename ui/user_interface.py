@@ -16,10 +16,10 @@ def light_off():
     command("light/status","false")
 
 def tv_on():
-    command("device/toggle","634095713:on")
+    command("device/toggle","634095713:onled")
 
 def tv_off():
-    command("device/toggle","634095713:off")
+    command("device/toggle","634095713:offled")
 
 def ac_on():
     command("device/toggle","4218396093:on")
