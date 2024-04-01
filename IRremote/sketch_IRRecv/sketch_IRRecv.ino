@@ -200,9 +200,9 @@ void loop() {
     Serial.print(resultToHumanReadableBasic(&results));
 
     // Compare the received raw data with each expected raw data
-    bool isTVMatch = std::equal(std::begin(results.rawData), std::end(results.rawData), std::begin(TV_rawData));
-    bool isAC_ON_Match = std::equal(std::begin(results.rawData), std::end(results.rawData), std::begin(AC_ON_rawData));
-    bool isAC_OFF_Match = std::equal(std::begin(results.rawData), std::end(results.rawData), std::begin(AC_OFF_rawData));
+    bool isTVMatch = std::equal(std::begin(results.rawbuf), std::end(results.rawbuf), std::begin(TV_rawData));
+    bool isAC_ON_Match = std::equal(std::begin(results.rawbuf), std::end(results.rawbuf), std::begin(AC_ON_rawData));
+    bool isAC_OFF_Match = std::equal(std::begin(results.rawbuf), std::end(results.rawbuf), std::begin(AC_OFF_rawData));
     
     if (isTVMatch) {
         M5.Lcd.printf("Received TV signal", 0);
@@ -211,7 +211,7 @@ void loop() {
     } else if (isAC_OFF_Match) {
         M5.Lcd.printf("Received AIRCON OFF signal", 0);
     } 
-    
+
     // Display any extra A/C info if we have it.
     String description = IRAcUtils::resultAcToString(&results);
     if (description.length()) Serial.println(D_STR_MESGDESC ": " + description);
