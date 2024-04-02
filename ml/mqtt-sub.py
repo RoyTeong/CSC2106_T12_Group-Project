@@ -28,8 +28,9 @@ def on_message(client, userdata, msg):
 client = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 client.on_message = on_message
 client.on_connect = on_connect
-#client.username_pw_set("homeassistant","eu0Vabee3iegaeRee4Voo9ozohtorahZeighoosai7soovae2ohcu8quahTi4iej")
+client.username_pw_set("homeassistant","eu0Vabee3iegaeRee4Voo9ozohtorahZeighoosai7soovae2ohcu8quahTi4iej")
 #client.connect("192.168.1.1",1883,60)
-client.connect('localhost',1883,60)
+client.connect("192.168.50.176", 1883, 60)
+#client.connect('localhost',1883,60)
 client.subscribe(topics)
 client.loop_forever()

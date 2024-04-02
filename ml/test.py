@@ -97,7 +97,7 @@ def on_connect(client, userdata, flags, reason_code, properties):
 mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 mqttc.on_connect = on_connect
 mqttc.on_message = on_message
-mqttc.connect("localhost", 1883, 60)
+mqttc.connect("192.168.50.176", 1883, 60)
 mqttc.subscribe("home/light")
 mqttc.loop_forever()
 

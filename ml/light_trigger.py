@@ -11,6 +11,7 @@ from faker import Faker
 
 model = DecisionTreeClassifier()
 
+
 def model_learn():
     df = pd.read_csv("home_assistant_log.csv")
 
@@ -38,7 +39,7 @@ def predict(curr_dt):
 
 def checkMidnight(curr_dt):
     #curr_dt = datetime.datetime.now()
-    return curr_dt.hour == 0
+    return curr_dt.hour == 0 and curr_dt.minute == 0 and curr_dt.second == 0
     #return curr_dt.hour == 0 and curr_dt.minute == 0 and curr_dt.second == 0
 
 def checkLightStatus():
@@ -52,61 +53,69 @@ def checkUpdated(date, date2):
 def on_connect(client, userdata, flags, reason_code, properties):
     print(f"Connected with result code {reason_code}")
 
+
 def demo_method(hh, mm):
+    toRunFor = 20 #Seconds
     curr_date = datetime.datetime.now()
     time = curr_date.time()
-    status = False
 
-    if curr_time >= datetime.time(hh,mm):
+    status = ""
+
+    if time.hour == hh and time.minute == mm and time.second == 0:
         mqttc.publish('light/status', 'true')
-        status = True
+        status = "-- Triggering light/status -- True"
 
-    if curr_time >= (datetime.datetime.combine(curr+datetime.time(hh,mm) + datetime.timedelta(minutes=1)):
+
+
+    tts = datetime.datetime.combine(curr_date, datetime.time(hh,mm)) + datetime.timedelta(seconds=toRunFor)
+    if time.hour == tts.hour and time.minute == tts.minute and time.second == tts.second:
         mqttc.publish('light/status', 'false')
-        status = True
+        status = "-- Triggering light/status -- False"
 
-    print("Time:[{}:{}:{}] | At [{}:{}] -- Light triggering status: {}",curr_time.hour, curr_time.minute, curr_time.second,hh,mm, status)
+    print("Time:[{:02d}:{:02d}:{:02d}] {}".format(time.hour, time.minute, time.second, status))
+    status = ""
+
 
 
 def actual():
-    if checkMidnight(test_date):
-        if not checkUpdated(test_date, last_updated):
-            print("RELEARNING MODEL !")
-            model_learn()
-            last_updated = test_date
+    now = datetime.datetime.now()
+    curr_light_status = checkLightStatus()
+    if checkMidnight(now):
+        print("Midnight -- Relearning model")
+        model_learn()
 
-    shouldOn = predict(test_date)
+    for i in range(1,5):
+        shouldOn = predict([i,now])
+        status = ""
 
-    print("[{:02d}:{:02d}:{:02d}] The light is already {}".format(datetime.datetime.now().hour, datetime.datetime.now().minute, datetime.datetime.now().second, "ON" if shouldOn else "OFF"))
-    if shouldOn != curr_light_status:
-        curr_light_status = shouldOn
-        mqttc.publish("light/trigger",str(shouldOn))
-        print("[{:02d}:{:02d}] The light switched to {}".format(test_date.hour, test_date.minute, "ON" if shouldOn else "OFF"))
-    else:
-        print("[{:02d}:{:02d}] The light is already {}".format(test_date.hour, test_date.minute, "ON" if shouldOn else "OFF"))
+        if curr_light_status != shouldOn:
+            curr_light_status = shouldOn
+            mqttc.publish("light/status",str(shouldOn).lower())
+            status = " -- light/status/{} setting to {}".format(i,str(shouldOn).lower())
+
+        print("[{:02d}:{:02d}:{:02d}] {}".format(now.hour, now.minute, now.second, status))
+        status = ""
+
+
 
 
 mqttc = mqtt.Client(mqtt.CallbackAPIVersion.VERSION2)
 
-#mqttc.username_pw_set("homeassistant", "eu0Vabee3iegaeRee4Voo9ozohtorahZeighoosai7soovae2ohcu8quahTi4iej")
-#client.on_connect = on_connect
-#mqttc.connect("192.168.1.1",1883, 60)
-
+mqttc.username_pw_set("homeassistant", "eu0Vabee3iegaeRee4Voo9ozohtorahZeighoosai7soovae2ohcu8quahTi4iej")
 client.on_connect = on_connect
-mqttc.connect('localhost',1883,60)
+#mqttc.connect("192.168.1.1",1883, 60)
+mqttc.connect("192.168.50.176", 1883, 60)
+
+#client.on_connect = on_connect
+#mqttc.connect('localhost',1883,60)
 
 
-curr_light_status = checkLightStatus()
 model_learn()
 faker = Faker()
 
-#test_date = faker.date_time_between(start_date='-2d')
-test_date = datetime.datetime.now()
-last_updated = datetime.datetime.now()
-index = 1
-
 while True:
-    demo_method(20,30)
+    demo_method(00,44)
+    #actual()
     time.sleep(1)
 
 
