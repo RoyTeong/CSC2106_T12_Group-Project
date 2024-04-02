@@ -32,12 +32,13 @@
 python3 user_interface.py
 ```
 ## Mesh Setup
-### MeshSerialTransmit.ino
+### [MeshSerialTransmit.ino](https://github.com/RoyTeong/CSC2106_T12_Group-Project/blob/main/MeshMQTT/MeshSerialTransmit.ino)
 - This will be flashed to a M5 Stick, it handles connecting to the MQTT broker and receiving messages from it 
 - It will then send the message using serial UART to the "MeshNodeMain.ino"
 - Update the WiFi and MQTT broker in line 6 - 15 accordingly to your setup
-### MeshNodeMain.ino
+### [MeshNodeMain.ino](https://github.com/RoyTeong/CSC2106_T12_Group-Project/blob/main/MeshMQTT/MeshNodeMain.ino)
 - This will be flashed to a M5 Stick, it will handle receiving the serial data and sending it out to the Mesh network
-### MeshNode.ino
+### [MeshNode.ino](https://github.com/RoyTeong/CSC2106_T12_Group-Project/blob/main/MeshMQTT/MeshNode.ino)
 - This will be flashed to a M5 Stick that has a IR emitter connected to it
 - IR raw data will be here
+
