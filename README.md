@@ -13,7 +13,7 @@
 # Setting up Home Assistant 
 ## Installing Home Assistant on Raspberry Pi
 1. Follow steps listed on this website [Instructions](https://www.home-assistant.io/installation/raspberrypi/)
-2. After home assistant has been successfully installed, download [homeassistant_backup.tar](https://github.com/UofG-CS-2023/Team07-NILM/blob/master/web_instructions.md)
+2. After home assistant has been successfully installed, download [homeassistant_backup.tar](https://github.com/RoyTeong/CSC2106_T12_Group-Project/blob/main/homeassistant_backup.tar)
 3. Go to Settings > System > Backups 
 4. Upload the backup and restore it
 5. Username: "jasper" Password: "123456789iI@"
@@ -27,7 +27,7 @@
 - e.g. "634095713:ontv"
 - The data in front of the : will be the node ID and the data behind the : are the trigger commands 
 ## User Controller 
-- Run [user_interface.py](https://github.com/UofG-CS-2023/Team07-NILM/blob/master/web_instructions.md)
+- Run [user_interface.py](https://github.com/RoyTeong/CSC2106_T12_Group-Project/blob/main/ui/user_interface.py)
 ```shell
 python3 user_interface.py
 ```
